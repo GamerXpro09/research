@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  # ── Single-intersection training (CPU) ──────────────────────────────────────
+  train:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    volumes:
+      - ../checkpoints:/app/checkpoints
+      - ../logs:/app/logs
+      - ../configs:/app/configs
+    command: >
+      python scripts/train.py
+        --config configs/default.yaml
+        --simulator cityflow
+        --episodes 500
+
+  # ── Evaluation ──────────────────────────────────────────────────────────────
+  evaluate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    volumes:
+      - ../checkpoints:/app/checkpoints
+      - ../logs:/app/logs
+      - ../configs:/app/configs
+    command: >
+      python scripts/evaluate.py
+        --config configs/default.yaml
+        --model  checkpoints/best_model.pt
+        --episodes 10
+    profiles:
+      - eval

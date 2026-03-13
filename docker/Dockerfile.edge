@@ -1,0 +1,24 @@
+# FedNS-Traffic Edge Device Image (NVIDIA Jetson Orin Nano)
+# Base: L4T PyTorch from NVIDIA; adjust tag for your JetPack version.
+FROM nvcr.io/nvidia/l4t-pytorch:r35.4.1-pth2.1-py3
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 libsm6 libxrender1 libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source
+COPY src/ src/
+COPY configs/ configs/
+COPY scripts/ scripts/
+
+RUN pip install --no-cache-dir -e .
+
+# Default: run the training script (override in compose / K3s manifest)
+ENTRYPOINT ["python", "scripts/train.py"]
