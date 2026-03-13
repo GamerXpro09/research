@@ -9,10 +9,8 @@ and raises ``ImportError`` only when ``reset()`` is called.
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -200,8 +198,8 @@ class CityFlowEnvironment(gym.Env):
 
         counts = np.array(list(lane_vehicle_count.values()), dtype=np.float32)
         queues = np.array(list(lane_waiting_count.values()), dtype=np.float32)
-        speeds = np.zeros_like(counts)   # CityFlow per-lane speed not always available
-        waits = queues * 5.0             # rough proxy: each halted veh ~5s wait
+        speeds = np.zeros_like(counts)  # CityFlow per-lane speed not always available
+        waits = queues * 5.0  # rough proxy: each halted veh ~5s wait
 
         sim_time = float(self._step_count)
         time_of_day = (sim_time % 86400) / 86400.0
@@ -224,9 +222,7 @@ class CityFlowEnvironment(gym.Env):
             ),
         )
 
-    def _compute_reward(
-        self, state_before: TrafficState, state_after: TrafficState
-    ) -> float:
+    def _compute_reward(self, state_before: TrafficState, state_after: TrafficState) -> float:
         w = self.reward_weights
 
         pressure = float(np.sum(state_after.queue_lengths))
@@ -240,9 +236,9 @@ class CityFlowEnvironment(gym.Env):
         r_throughput = float(arrived) / 10.0
 
         wait_thresh = 120.0
-        r_wait = -float(
-            np.sum(np.maximum(0, state_after.waiting_times - wait_thresh))
-        ) / wait_thresh
+        r_wait = (
+            -float(np.sum(np.maximum(0, state_after.waiting_times - wait_thresh))) / wait_thresh
+        )
 
         r_ped = 0.0
 
@@ -270,4 +266,4 @@ class CityFlowEnvironment(gym.Env):
                     return len(phases)
         except Exception:
             pass
-        return 8   # default
+        return 8  # default

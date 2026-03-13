@@ -16,7 +16,6 @@ from src.environment.state_representation import (
     TrafficState,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -117,7 +116,7 @@ class TestStateEncoder:
             # (with num_lanes=12 default, but here state has 4 lanes)
             # We only check the phase via round-trip: encode then check argmax
             # in the phase slice
-            phase_start = cfg.num_lanes * 4   # 12 * 4 = 48
+            phase_start = cfg.num_lanes * 4  # 12 * 4 = 48
             phase_slice = obs[phase_start : phase_start + cfg.num_phases]
             assert int(np.argmax(phase_slice)) == phase
 

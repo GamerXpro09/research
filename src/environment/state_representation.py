@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
+
+import numpy as np
 
 
 @dataclass
@@ -19,24 +20,24 @@ class TrafficState:
     """
 
     # Per-lane features
-    queue_lengths: np.ndarray      # vehicles waiting  (int, per lane)
-    vehicle_speeds: np.ndarray     # avg speed km/h    (float, per lane)
-    waiting_times: np.ndarray      # avg wait seconds  (float, per lane)
-    vehicle_counts: np.ndarray     # total in det. zone (int, per lane)
+    queue_lengths: np.ndarray  # vehicles waiting  (int, per lane)
+    vehicle_speeds: np.ndarray  # avg speed km/h    (float, per lane)
+    waiting_times: np.ndarray  # avg wait seconds  (float, per lane)
+    vehicle_counts: np.ndarray  # total in det. zone (int, per lane)
 
     # Intersection-level features
-    current_phase: int             # phase index
-    num_phases: int                # total number of phases
-    phase_duration: float          # seconds in current phase
-    time_of_day: float             # normalised [0, 1]
-    day_of_week: int               # 0 = Monday … 6 = Sunday
+    current_phase: int  # phase index
+    num_phases: int  # total number of phases
+    phase_duration: float  # seconds in current phase
+    time_of_day: float  # normalised [0, 1]
+    day_of_week: int  # 0 = Monday … 6 = Sunday
 
     # Pedestrian features
-    pedestrian_waiting: np.ndarray    # bool per crosswalk
-    pedestrian_wait_times: np.ndarray # seconds per crosswalk
+    pedestrian_waiting: np.ndarray  # bool per crosswalk
+    pedestrian_wait_times: np.ndarray  # seconds per crosswalk
 
     # Coordination (neighbour embeddings received via MQTT)
-    neighbor_embeddings: np.ndarray   # shape (K, embed_dim)
+    neighbor_embeddings: np.ndarray  # shape (K, embed_dim)
 
     # Optional extras
     emergency_vehicle_detected: bool = False
@@ -59,11 +60,11 @@ class StateConfig:
     @property
     def flat_dim(self) -> int:
         """Dimension of the flattened, normalised observation vector."""
-        per_lane = 4                    # queue, speed, wait, count
-        phase_enc = self.num_phases     # one-hot
-        time_feats = 1 + 7              # time_of_day + day_of_week (one-hot)
+        per_lane = 4  # queue, speed, wait, count
+        phase_enc = self.num_phases  # one-hot
+        time_feats = 1 + 7  # time_of_day + day_of_week (one-hot)
         phase_dur = 1
-        ped = 2 * 4                     # wait bool + wait time for up to 4 crosswalks
+        ped = 2 * 4  # wait bool + wait time for up to 4 crosswalks
         neighbors = self.max_neighbors * self.embed_dim
         return self.num_lanes * per_lane + phase_enc + time_feats + phase_dur + ped + neighbors
 
@@ -82,15 +83,9 @@ class StateEncoder:
         parts: List[np.ndarray] = []
 
         # Per-lane features (normalised)
-        parts.append(
-            self._pad(state.queue_lengths / self.cfg.queue_length_max, self.cfg.num_lanes)
-        )
-        parts.append(
-            self._pad(state.vehicle_speeds / self.cfg.speed_max, self.cfg.num_lanes)
-        )
-        parts.append(
-            self._pad(state.waiting_times / self.cfg.wait_time_max, self.cfg.num_lanes)
-        )
+        parts.append(self._pad(state.queue_lengths / self.cfg.queue_length_max, self.cfg.num_lanes))
+        parts.append(self._pad(state.vehicle_speeds / self.cfg.speed_max, self.cfg.num_lanes))
+        parts.append(self._pad(state.waiting_times / self.cfg.wait_time_max, self.cfg.num_lanes))
         parts.append(
             self._pad(state.vehicle_counts / self.cfg.queue_length_max, self.cfg.num_lanes)
         )
@@ -113,9 +108,7 @@ class StateEncoder:
 
         # Pedestrian features (up to 4 crosswalks)
         ped_bool = self._pad(state.pedestrian_waiting.astype(np.float32), 4)
-        ped_wait = self._pad(
-            state.pedestrian_wait_times / self.cfg.wait_time_max, 4
-        )
+        ped_wait = self._pad(state.pedestrian_wait_times / self.cfg.wait_time_max, 4)
         parts.append(ped_bool)
         parts.append(ped_wait)
 

@@ -16,19 +16,17 @@ import os
 import tempfile
 
 import numpy as np
-import pytest
 import torch
 
+from src.agents.baselines import FixedTimingBaseline, MaxPressureBaseline
 from src.agents.dqn_agent import (
-    DuelingDQNNetwork,
-    SumTree,
-    PrioritizedReplayBuffer,
     DuelingDQNAgent,
+    DuelingDQNNetwork,
+    PrioritizedReplayBuffer,
+    SumTree,
     Transition,
 )
-from src.agents.baselines import FixedTimingBaseline, MaxPressureBaseline
 from src.environment.state_representation import TrafficState
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -255,10 +253,12 @@ class TestDuelingDQNAgent:
         agent = self._make_agent(learning_starts=0, batch_size=8)
         # Fill replay buffer
         for _ in range(50):
-            agent.observe(random_state(), int(np.random.randint(NUM_ACTIONS)), 1.0, random_state(), False)
+            agent.observe(
+                random_state(), int(np.random.randint(NUM_ACTIONS)), 1.0, random_state(), False
+            )
         # At least one training step should have occurred
         assert len(agent.losses) > 0
-        assert all(np.isfinite(l) for l in agent.losses)
+        assert all(np.isfinite(loss_val) for loss_val in agent.losses)
 
     def test_save_and_load(self):
         agent = self._make_agent()
@@ -269,9 +269,7 @@ class TestDuelingDQNAgent:
             new_agent = self._make_agent()
             new_agent.load(path)
             # Check that loaded weights match
-            for p1, p2 in zip(
-                agent.online_net.parameters(), new_agent.online_net.parameters()
-            ):
+            for p1, p2 in zip(agent.online_net.parameters(), new_agent.online_net.parameters()):
                 assert torch.allclose(p1, p2)
         finally:
             os.unlink(path)
@@ -284,9 +282,7 @@ class TestDuelingDQNAgent:
         # At least some layers should differ after training + soft updates
         total_diff = sum(
             float((p1 - p2).abs().sum())
-            for p1, p2 in zip(
-                agent.online_net.parameters(), agent.target_net.parameters()
-            )
+            for p1, p2 in zip(agent.online_net.parameters(), agent.target_net.parameters())
         )
         # After enough training steps with tau < 1, some difference is expected
         # (This is a sanity check; small differences are OK)
@@ -325,9 +321,7 @@ class TestFixedTimingBaseline:
         assert baseline._time_in_phase == 0
 
     def test_phase_splits_respected(self):
-        baseline = FixedTimingBaseline(
-            num_phases=2, cycle_length=100, phase_splits=[0.75, 0.25]
-        )
+        baseline = FixedTimingBaseline(num_phases=2, cycle_length=100, phase_splits=[0.75, 0.25])
         assert baseline.phase_durations[0] > baseline.phase_durations[1]
 
 
@@ -347,8 +341,8 @@ class TestMaxPressureBaseline:
     def test_selects_highest_pressure_phase(self):
         """When one phase has clearly higher queue, it should be preferred."""
         phase_movements = {
-            0: [0, 1],   # lanes 0, 1
-            1: [2, 3],   # lanes 2, 3
+            0: [0, 1],  # lanes 0, 1
+            1: [2, 3],  # lanes 2, 3
         }
         baseline = MaxPressureBaseline(
             phase_movements=phase_movements,

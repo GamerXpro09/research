@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.utils.config import load_config, merge_configs, get_device_str
+from src.utils.config import get_device_str, load_config, merge_configs
 from src.utils.metrics import EpisodeMetrics, improvement_over_baseline
 
 
@@ -81,13 +81,19 @@ class TestEpisodeMetrics:
         m = EpisodeMetrics()
         m.finalise()
         d = m.as_dict()
-        for key in ["total_reward", "avg_queue_length", "avg_wait_time",
-                    "total_throughput", "safety_overrides", "num_steps"]:
+        for key in [
+            "total_reward",
+            "avg_queue_length",
+            "avg_wait_time",
+            "total_throughput",
+            "safety_overrides",
+            "num_steps",
+        ]:
             assert key in d
 
     def test_empty_finalise(self):
         m = EpisodeMetrics()
-        m.finalise()   # Should not raise
+        m.finalise()  # Should not raise
         assert m.avg_wait_time == 0.0
 
 

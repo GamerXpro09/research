@@ -15,10 +15,8 @@ Schaul et al. (2016). "Prioritized Experience Replay."
 
 from __future__ import annotations
 
-import math
 import random
-from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -26,7 +24,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
 
 # ---------------------------------------------------------------------------
 # Neural network
@@ -189,11 +186,9 @@ class PrioritizedReplayBuffer:
         self._max_priority: float = 1.0
 
     def push(self, transition: Transition):
-        self._tree.add(self._max_priority ** self.alpha, transition)
+        self._tree.add(self._max_priority**self.alpha, transition)
 
-    def sample(
-        self, batch_size: int
-    ) -> Tuple[List[Transition], np.ndarray, np.ndarray]:
+    def sample(self, batch_size: int) -> Tuple[List[Transition], np.ndarray, np.ndarray]:
         """
         Sample a batch.
 
@@ -311,12 +306,8 @@ class DuelingDQNAgent:
         self.target_update_freq = target_update_freq
 
         # Networks
-        self.online_net = DuelingDQNNetwork(state_dim, num_actions, hidden_dim).to(
-            self.device
-        )
-        self.target_net = DuelingDQNNetwork(state_dim, num_actions, hidden_dim).to(
-            self.device
-        )
+        self.online_net = DuelingDQNNetwork(state_dim, num_actions, hidden_dim).to(self.device)
+        self.target_net = DuelingDQNNetwork(state_dim, num_actions, hidden_dim).to(self.device)
         self.target_net.load_state_dict(self.online_net.state_dict())
         self.target_net.eval()
 
@@ -404,21 +395,13 @@ class DuelingDQNAgent:
     def _train_step(self) -> float:
         transitions, indices, weights = self.replay_buffer.sample(self.batch_size)
 
-        states = torch.FloatTensor(
-            np.array([t.state for t in transitions])
-        ).to(self.device)
-        actions = torch.LongTensor(
-            np.array([t.action for t in transitions])
-        ).to(self.device)
-        rewards = torch.FloatTensor(
-            np.array([t.reward for t in transitions])
-        ).to(self.device)
-        next_states = torch.FloatTensor(
-            np.array([t.next_state for t in transitions])
-        ).to(self.device)
-        dones = torch.FloatTensor(
-            np.array([float(t.done) for t in transitions])
-        ).to(self.device)
+        states = torch.FloatTensor(np.array([t.state for t in transitions])).to(self.device)
+        actions = torch.LongTensor(np.array([t.action for t in transitions])).to(self.device)
+        rewards = torch.FloatTensor(np.array([t.reward for t in transitions])).to(self.device)
+        next_states = torch.FloatTensor(np.array([t.next_state for t in transitions])).to(
+            self.device
+        )
+        dones = torch.FloatTensor(np.array([float(t.done) for t in transitions])).to(self.device)
         weights_t = torch.FloatTensor(weights).to(self.device)
 
         # Double DQN target
@@ -446,12 +429,8 @@ class DuelingDQNAgent:
         return loss_val
 
     def _soft_update(self):
-        for p_online, p_target in zip(
-            self.online_net.parameters(), self.target_net.parameters()
-        ):
-            p_target.data.copy_(
-                self.tau * p_online.data + (1.0 - self.tau) * p_target.data
-            )
+        for p_online, p_target in zip(self.online_net.parameters(), self.target_net.parameters()):
+            p_target.data.copy_(self.tau * p_online.data + (1.0 - self.tau) * p_target.data)
 
     # ------------------------------------------------------------------
     # Persistence

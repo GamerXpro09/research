@@ -8,8 +8,6 @@ of the codebase (agents, tests) import the module unconditionally.
 
 from __future__ import annotations
 
-import os
-import time
 from typing import Any, Dict, Optional, Tuple
 
 import gymnasium as gym
@@ -25,8 +23,8 @@ from src.environment.state_representation import (
 # Lazy SUMO / TraCI import
 # ---------------------------------------------------------------------------
 try:
+    import sumolib  # type: ignore  # noqa: F401
     import traci  # type: ignore
-    import sumolib  # type: ignore
 
     _SUMO_AVAILABLE = True
 except ImportError:
@@ -37,14 +35,14 @@ except ImportError:
 # Phase definitions for a standard 4-way intersection (NEMA-style, 8 phases)
 # ---------------------------------------------------------------------------
 PHASE_DEFINITIONS = {
-    0: {"name": "NS_GREEN",     "duration": 30, "movements": ["N_straight", "S_straight"]},
-    1: {"name": "NS_LEFT",      "duration": 20, "movements": ["N_left",     "S_left"]},
-    2: {"name": "EW_GREEN",     "duration": 30, "movements": ["E_straight", "W_straight"]},
-    3: {"name": "EW_LEFT",      "duration": 20, "movements": ["E_left",     "W_left"]},
-    4: {"name": "ALL_RED_1",    "duration":  3, "movements": []},
-    5: {"name": "ALL_RED_2",    "duration":  3, "movements": []},
-    6: {"name": "PED_NS",       "duration": 20, "movements": ["ped_N", "ped_S"]},
-    7: {"name": "PED_EW",       "duration": 20, "movements": ["ped_E", "ped_W"]},
+    0: {"name": "NS_GREEN", "duration": 30, "movements": ["N_straight", "S_straight"]},
+    1: {"name": "NS_LEFT", "duration": 20, "movements": ["N_left", "S_left"]},
+    2: {"name": "EW_GREEN", "duration": 30, "movements": ["E_straight", "W_straight"]},
+    3: {"name": "EW_LEFT", "duration": 20, "movements": ["E_left", "W_left"]},
+    4: {"name": "ALL_RED_1", "duration": 3, "movements": []},
+    5: {"name": "ALL_RED_2", "duration": 3, "movements": []},
+    6: {"name": "PED_NS", "duration": 20, "movements": ["ped_N", "ped_S"]},
+    7: {"name": "PED_EW", "duration": 20, "movements": ["ped_E", "ped_W"]},
 }
 
 DURATION_BUCKETS = [10, 20, 30, 45]  # seconds
@@ -190,9 +188,7 @@ class SumoEnvironment(gym.Env):
 
         self._episode_metrics["total_reward"] += reward
         self._episode_metrics["total_wait"] += float(np.mean(state_after.waiting_times))
-        self._episode_metrics["total_throughput"] += int(
-            traci.simulation.getArrivedNumber()
-        )
+        self._episode_metrics["total_throughput"] += int(traci.simulation.getArrivedNumber())
 
         terminated = False
         truncated = self._step_count >= self.max_steps
@@ -223,12 +219,18 @@ class SumoEnvironment(gym.Env):
         sumo_binary = "sumo-gui" if self.use_gui else "sumo"
         sumo_cmd = [
             sumo_binary,
-            "-n", self.net_file,
-            "-r", self.route_file,
-            "--no-step-log", "true",
-            "--waiting-time-memory", "10000",
-            "--time-to-teleport", "-1",
-            "--seed", str(self.seed_val),
+            "-n",
+            self.net_file,
+            "-r",
+            self.route_file,
+            "--no-step-log",
+            "true",
+            "--waiting-time-memory",
+            "10000",
+            "--time-to-teleport",
+            "-1",
+            "--seed",
+            str(self.seed_val),
         ]
         if self.out_csv_name:
             sumo_cmd += ["--statistic-output", self.out_csv_name]
@@ -299,9 +301,7 @@ class SumoEnvironment(gym.Env):
             ),
         )
 
-    def _compute_reward(
-        self, state_before: TrafficState, state_after: TrafficState
-    ) -> float:
+    def _compute_reward(self, state_before: TrafficState, state_after: TrafficState) -> float:
         w = self.reward_weights
 
         # Pressure: imbalance between upstream and downstream queues
@@ -318,15 +318,13 @@ class SumoEnvironment(gym.Env):
 
         # Excessive waiting penalty
         wait_thresh = 120.0
-        r_wait = -float(
-            np.sum(np.maximum(0, state_after.waiting_times - wait_thresh))
-        ) / wait_thresh
+        r_wait = (
+            -float(np.sum(np.maximum(0, state_after.waiting_times - wait_thresh))) / wait_thresh
+        )
 
         # Pedestrian penalty
         ped_thresh = 45.0
-        r_ped = -float(
-            np.sum(state_after.pedestrian_wait_times > ped_thresh)
-        )
+        r_ped = -float(np.sum(state_after.pedestrian_wait_times > ped_thresh))
 
         reward = (
             w.get("pressure", 0.4) * r_pressure
