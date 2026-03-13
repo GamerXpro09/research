@@ -22,12 +22,12 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from src.agents.dqn_agent import DuelingDQNAgent
-from src.environment.state_representation import StateConfig
-from src.utils.config import load_config, merge_configs, get_device_str
-from src.utils.metrics import EpisodeMetrics
+from src.agents.dqn_agent import DuelingDQNAgent  # noqa: E402
+from src.environment.state_representation import StateConfig  # noqa: E402
+from src.utils.config import get_device_str, load_config, merge_configs  # noqa: E402
+from src.utils.metrics import EpisodeMetrics  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,10 +40,10 @@ log = logging.getLogger(__name__)
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train single-intersection Dueling DQN")
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--net",    default=None, help="SUMO .net.xml file")
+    p.add_argument("--net", default=None, help="SUMO .net.xml file")
     p.add_argument("--routes", default=None, help="SUMO .rou.xml file")
     p.add_argument("--episodes", type=int, default=None)
-    p.add_argument("--device",   default=None, choices=["auto", "cpu", "cuda"])
+    p.add_argument("--device", default=None, choices=["auto", "cpu", "cuda"])
     p.add_argument("--simulator", default=None, choices=["sumo", "cityflow"])
     p.add_argument("--gui", action="store_true", help="Launch SUMO GUI")
     return p.parse_args()
@@ -53,31 +53,34 @@ def build_env(cfg: dict, net: str | None, routes: str | None, use_gui: bool):
     """Instantiate the configured simulator environment."""
     sim_cfg = cfg.get("simulation", {})
     simulator = sim_cfg.get("simulator", "sumo")
-    state_cfg = StateConfig(**{
-        k: sim_cfg.get(k, v)
-        for k, v in {
-            "num_lanes":        cfg.get("state", {}).get("num_lanes", 12),
-            "num_phases":       cfg.get("action", {}).get("num_phases", 8),
-            "embed_dim":        cfg.get("state", {}).get("embed_dim", 16),
-            "max_neighbors":    cfg.get("state", {}).get("max_neighbors", 4),
-            "queue_length_max": cfg.get("state", {}).get("queue_length_max", 50.0),
-            "speed_max":        cfg.get("state", {}).get("speed_max", 60.0),
-            "wait_time_max":    cfg.get("state", {}).get("wait_time_max", 300.0),
-        }.items()
-    })
+    state_cfg = StateConfig(
+        **{
+            k: sim_cfg.get(k, v)
+            for k, v in {
+                "num_lanes": cfg.get("state", {}).get("num_lanes", 12),
+                "num_phases": cfg.get("action", {}).get("num_phases", 8),
+                "embed_dim": cfg.get("state", {}).get("embed_dim", 16),
+                "max_neighbors": cfg.get("state", {}).get("max_neighbors", 4),
+                "queue_length_max": cfg.get("state", {}).get("queue_length_max", 50.0),
+                "speed_max": cfg.get("state", {}).get("speed_max", 60.0),
+                "wait_time_max": cfg.get("state", {}).get("wait_time_max", 300.0),
+            }.items()
+        }
+    )
 
     safety = cfg.get("safety", {})
     reward_cfg = cfg.get("reward", {})
     reward_weights = {
-        "pressure":   reward_cfg.get("w_pressure",  0.40),
-        "queue":      reward_cfg.get("w_queue",      0.25),
+        "pressure": reward_cfg.get("w_pressure", 0.40),
+        "queue": reward_cfg.get("w_queue", 0.25),
         "throughput": reward_cfg.get("w_throughput", 0.20),
-        "wait":       reward_cfg.get("w_wait",       0.10),
+        "wait": reward_cfg.get("w_wait", 0.10),
         "pedestrian": reward_cfg.get("w_pedestrian", 0.05),
     }
 
     if simulator == "sumo":
         from src.environment.sumo_env import SumoEnvironment
+
         if not net or not routes:
             raise ValueError("--net and --routes are required for SUMO simulator")
         env = SumoEnvironment(
@@ -182,7 +185,9 @@ def main():
     agent = build_agent(cfg, state_dim, num_actions)
     log.info(
         "Training Dueling DQN  state_dim=%d  num_actions=%d  device=%s",
-        state_dim, num_actions, agent.device,
+        state_dim,
+        num_actions,
+        agent.device,
     )
 
     best_reward = -np.inf
@@ -191,7 +196,8 @@ def main():
         metrics = run_episode(env, agent, training=True)
         log.info(
             "Episode %4d/%d  reward=%7.2f  ε=%.3f  avg_wait=%.1fs",
-            ep, total_episodes,
+            ep,
+            total_episodes,
             metrics.total_reward,
             agent.epsilon,
             metrics.avg_wait_time,

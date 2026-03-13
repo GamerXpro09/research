@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
-
 
 _DEFAULT_CONFIG_PATH = Path(__file__).parents[2] / "configs" / "default.yaml"
 
@@ -52,6 +50,7 @@ def get_device_str(device: str = "auto") -> str:
     if device == "auto":
         try:
             import torch
+
             return "cuda" if torch.cuda.is_available() else "cpu"
         except ImportError:
             return "cpu"

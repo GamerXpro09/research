@@ -23,13 +23,12 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from src.agents.dqn_agent import DuelingDQNAgent
-from src.agents.baselines import FixedTimingBaseline, MaxPressureBaseline
-from src.environment.state_representation import StateConfig
-from src.utils.config import load_config, get_device_str
-from src.utils.metrics import EpisodeMetrics, improvement_over_baseline
+from src.agents.dqn_agent import DuelingDQNAgent  # noqa: E402
+from src.environment.state_representation import StateConfig  # noqa: E402
+from src.utils.config import get_device_str, load_config  # noqa: E402
+from src.utils.metrics import EpisodeMetrics  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,12 +40,12 @@ log = logging.getLogger(__name__)
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Evaluate FedNS-Traffic agents vs. baselines")
-    p.add_argument("--model",    required=True, help="Path to saved agent checkpoint")
-    p.add_argument("--config",   default="configs/default.yaml")
-    p.add_argument("--net",      default=None)
-    p.add_argument("--routes",   default=None)
+    p.add_argument("--model", required=True, help="Path to saved agent checkpoint")
+    p.add_argument("--config", default="configs/default.yaml")
+    p.add_argument("--net", default=None)
+    p.add_argument("--routes", default=None)
     p.add_argument("--episodes", type=int, default=10)
-    p.add_argument("--device",   default="auto")
+    p.add_argument("--device", default="auto")
     return p.parse_args()
 
 
@@ -120,15 +119,19 @@ def main():
         device=get_device_str(args.device),
     )
     agent.load(args.model)
-    agent.epsilon = 0.0   # greedy evaluation
+    agent.epsilon = 0.0  # greedy evaluation
 
     log.info("Evaluating DQN agent over %d episodes …", args.episodes)
     dqn_metrics = evaluate_agent(env, agent, args.episodes)
 
     # Fixed-timing baseline evaluation (offline — we just compute over state logs)
-    log.info("DQN  | reward=%.2f  avg_wait=%.1fs  queue=%.1f  throughput=%d",
-             dqn_metrics.total_reward, dqn_metrics.avg_wait_time,
-             dqn_metrics.avg_queue_length, dqn_metrics.total_throughput)
+    log.info(
+        "DQN  | reward=%.2f  avg_wait=%.1fs  queue=%.1f  throughput=%d",
+        dqn_metrics.total_reward,
+        dqn_metrics.avg_wait_time,
+        dqn_metrics.avg_queue_length,
+        dqn_metrics.total_throughput,
+    )
 
     env.close()
     log.info("Evaluation complete.")
