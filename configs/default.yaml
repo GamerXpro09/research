@@ -1,0 +1,88 @@
+# FedNS-Traffic default configuration
+
+# ─── Simulation ────────────────────────────────────────────────────────────────
+simulation:
+  simulator: "cityflow"        # "sumo" | "cityflow"
+  network: "single"            # "single" | "grid3x3" | "grid5x5"
+  num_intersections: 1
+  step_length: 1.0             # seconds per simulation step
+  yellow_duration: 3           # yellow phase duration (s)
+  all_red_duration: 2          # all-red clearance interval (s)
+  max_steps: 3600              # steps per episode (1 hour)
+  seed: 42
+
+# ─── State Representation ──────────────────────────────────────────────────────
+state:
+  queue_length_max: 50         # clipping value for queue lengths
+  speed_max: 60.0              # km/h, for normalisation
+  wait_time_max: 300.0         # seconds, for normalisation
+  num_lanes: 12                # maximum lanes per intersection
+  embed_dim: 16                # coordination embedding dimension
+  max_neighbors: 4             # maximum K-hop neighbors
+
+# ─── Action Space ──────────────────────────────────────────────────────────────
+action:
+  num_phases: 8
+  duration_buckets: [10, 20, 30, 45]   # seconds for each bucket
+
+# ─── Safety Constraints ────────────────────────────────────────────────────────
+safety:
+  min_green: 5                 # seconds
+  max_green: 90                # seconds
+  max_pedestrian_wait: 60      # seconds
+  neighbor_influence_threshold: 0.3
+
+# ─── Reward ────────────────────────────────────────────────────────────────────
+reward:
+  w_pressure: 0.40
+  w_queue: 0.25
+  w_throughput: 0.20
+  w_wait: 0.10
+  w_pedestrian: 0.05
+  wait_threshold: 120.0        # seconds before penalty kicks in
+  ped_threshold: 45.0          # seconds before pedestrian penalty
+
+# ─── Agent (Dueling DQN) ───────────────────────────────────────────────────────
+agent:
+  # Network
+  hidden_dim: 128
+  embed_dim: 16
+  # Training
+  lr: 3.0e-4
+  gamma: 0.99
+  tau: 0.005                   # soft-update coefficient
+  batch_size: 64
+  # Replay buffer
+  buffer_capacity: 100_000
+  # Prioritised experience replay
+  per_alpha: 0.6               # priority exponent
+  per_beta_start: 0.4          # IS weight exponent (anneals to 1)
+  per_beta_frames: 100_000
+  per_epsilon: 1.0e-6          # small constant added to priorities
+  # Exploration
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay: 0.995
+  # Learning
+  learning_starts: 1_000       # steps before training begins
+  train_freq: 4                # train every N env steps
+  target_update_freq: 1_000    # hard-update target every N steps
+
+# ─── Training ──────────────────────────────────────────────────────────────────
+training:
+  total_episodes: 500
+  eval_episodes: 10
+  eval_freq: 50                # evaluate every N training episodes
+  save_freq: 100               # checkpoint every N episodes
+  log_dir: "logs/"
+  checkpoint_dir: "checkpoints/"
+  device: "auto"               # "auto" | "cpu" | "cuda"
+
+# ─── Baselines ─────────────────────────────────────────────────────────────────
+baselines:
+  fixed_timing:
+    cycle_length: 90           # seconds
+    phase_splits: [0.25, 0.25, 0.25, 0.25]
+  max_pressure:
+    min_green: 5
+    max_green: 90
